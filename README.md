@@ -2,6 +2,10 @@
 
 A monitoring agent for humanitarian assistance and disaster response (HADR).
 
+## What is HADR?
+
+HADR covers the operations mounted when disaster strikes — earthquakes, cyclones, floods, volcanic eruptions — and people need help: search and rescue, relief supplies, medical teams, evacuation. Militaries, UN agencies and NGOs all run HADR missions, and they share a common first problem: knowing that something has happened, how bad it is, and who is affected, fast enough to act. The hours after an event are spent answering exactly those questions from noisy, conflicting sources — which is the job this agent takes on: watch the feeds, separate signal from noise, and have an assessment ready every morning.
+
 ## The end state
 
 By Wednesday afternoon this repository contains an agent that:
