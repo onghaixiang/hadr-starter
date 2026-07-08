@@ -1,0 +1,602 @@
+<title>PRD — HADR Morning Situation Report</title>
+<style>
+  :root {
+    /* neutrals — cool, slight blue bias (situation-room) */
+    --bg: #f6f8fa;
+    --surface: #ffffff;
+    --surface-2: #eef1f5;
+    --line: #d8dee6;
+    --line-strong: #c2cad4;
+    --ink: #16202b;
+    --ink-2: #47556492;
+    --ink-soft: #4a5a6a;
+    --muted: #6b7a8a;
+    /* accent — single signal amber */
+    --accent: #b96a1f;
+    --accent-soft: #f0e3d3;
+    --accent-ink: #8a4d12;
+    /* severity ramp (data chips only, never the accent) */
+    --sev-green: #2f8f5b;
+    --sev-yellow: #b7961f;
+    --sev-orange: #cf6f1c;
+    --sev-red: #c23b34;
+    --sev-green-bg: #e3f1e9;
+    --sev-yellow-bg: #f4efd6;
+    --sev-orange-bg: #f6e6d5;
+    --sev-red-bg: #f6dedc;
+
+    --mono: ui-monospace, "SF Mono", "SFMono-Regular", "Cascadia Code", "Consolas", "Liberation Mono", monospace;
+    --sans: -apple-system, BlinkMacSystemFont, "Segoe UI", "Helvetica Neue", Arial, system-ui, sans-serif;
+
+    --maxw: 74ch;
+    --gutter: clamp(1.1rem, 4vw, 3rem);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #0e151b;
+      --surface: #141d25;
+      --surface-2: #1a242e;
+      --line: #26333f;
+      --line-strong: #33434f;
+      --ink: #e7edf3;
+      --ink-2: #9fb0bf;
+      --ink-soft: #b6c2cd;
+      --muted: #8494a3;
+      --accent: #e2954b;
+      --accent-soft: #33261700;
+      --accent-ink: #f0b072;
+      --sev-green: #4fc07f; --sev-yellow: #d9b53f; --sev-orange: #eb8e42; --sev-red: #ea6058;
+      --sev-green-bg: #16281f; --sev-yellow-bg: #2a2513; --sev-orange-bg: #2c2013; --sev-red-bg: #2c1615;
+    }
+  }
+  :root[data-theme="light"] {
+    --bg: #f6f8fa; --surface: #ffffff; --surface-2: #eef1f5; --line: #d8dee6; --line-strong: #c2cad4;
+    --ink: #16202b; --ink-2: #475564; --ink-soft: #4a5a6a; --muted: #6b7a8a;
+    --accent: #b96a1f; --accent-soft: #f0e3d3; --accent-ink: #8a4d12;
+    --sev-green: #2f8f5b; --sev-yellow: #b7961f; --sev-orange: #cf6f1c; --sev-red: #c23b34;
+    --sev-green-bg: #e3f1e9; --sev-yellow-bg: #f4efd6; --sev-orange-bg: #f6e6d5; --sev-red-bg: #f6dedc;
+  }
+  :root[data-theme="dark"] {
+    --bg: #0e151b; --surface: #141d25; --surface-2: #1a242e; --line: #26333f; --line-strong: #33434f;
+    --ink: #e7edf3; --ink-2: #9fb0bf; --ink-soft: #b6c2cd; --muted: #8494a3;
+    --accent: #e2954b; --accent-soft: #332617; --accent-ink: #f0b072;
+    --sev-green: #4fc07f; --sev-yellow: #d9b53f; --sev-orange: #eb8e42; --sev-red: #ea6058;
+    --sev-green-bg: #16281f; --sev-yellow-bg: #2a2513; --sev-orange-bg: #2c2013; --sev-red-bg: #2c1615;
+  }
+
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--ink);
+    font-family: var(--sans);
+    font-size: 17px;
+    line-height: 1.65;
+    -webkit-font-smoothing: antialiased;
+    text-rendering: optimizeLegibility;
+  }
+  .wrap { max-width: var(--maxw); margin: 0 auto; padding: 0 var(--gutter) 6rem; }
+
+  /* ---- masthead ---- */
+  .masthead {
+    border-bottom: 2px solid var(--ink);
+    padding: 2.6rem 0 1.4rem;
+    margin-bottom: 2.4rem;
+  }
+  .eyebrow {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .18em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    display: flex;
+    gap: .6rem;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+  .eyebrow .dot { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); display: inline-block; }
+  h1 {
+    font-size: clamp(2.05rem, 6vw, 3rem);
+    line-height: 1.04;
+    letter-spacing: -.02em;
+    font-weight: 760;
+    margin: 1rem 0 .5rem;
+    text-wrap: balance;
+  }
+  .subtitle { color: var(--ink-soft); font-size: 1.12rem; max-width: 60ch; margin: 0 0 1.6rem; }
+
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1px;
+    background: var(--line);
+    border: 1px solid var(--line);
+    border-radius: 8px;
+    overflow: hidden;
+  }
+  .meta-grid div { background: var(--surface); padding: .7rem .85rem; }
+  .meta-grid dt {
+    font-family: var(--mono); font-size: .64rem; letter-spacing: .13em; text-transform: uppercase;
+    color: var(--muted); margin-bottom: .28rem;
+  }
+  .meta-grid dd { margin: 0; font-weight: 640; font-size: .95rem; font-variant-numeric: tabular-nums; }
+  .score-hi { color: var(--sev-green); }
+
+  /* ---- section rhythm ---- */
+  section { margin-top: 3.3rem; scroll-margin-top: 1.5rem; }
+  .sec-label {
+    font-family: var(--mono);
+    font-size: .72rem;
+    letter-spacing: .16em;
+    text-transform: uppercase;
+    color: var(--accent);
+    font-weight: 600;
+    display: block;
+    margin-bottom: .35rem;
+  }
+  h2 {
+    font-size: 1.55rem; letter-spacing: -.015em; font-weight: 720; line-height: 1.15;
+    margin: 0 0 1rem; padding-bottom: .55rem; border-bottom: 1px solid var(--line-strong);
+    text-wrap: balance;
+  }
+  h3 { font-size: 1.13rem; font-weight: 680; letter-spacing: -.01em; margin: 1.9rem 0 .5rem; }
+  p { margin: 0 0 1rem; }
+  a { color: var(--accent-ink); text-underline-offset: 2px; text-decoration-thickness: 1px; }
+  strong { font-weight: 680; }
+  code {
+    font-family: var(--mono); font-size: .84em; background: var(--surface-2);
+    padding: .1em .38em; border-radius: 4px; border: 1px solid var(--line);
+    word-break: break-word;
+  }
+
+  /* ---- callouts / cards ---- */
+  .lede {
+    font-size: 1.16rem; line-height: 1.6; color: var(--ink);
+    border-left: 3px solid var(--accent); padding-left: 1.1rem; margin: 0 0 1.4rem;
+  }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px;
+    padding: 1.15rem 1.25rem; margin: 0 0 1rem;
+  }
+  .card h3 { margin-top: 0; }
+  .stack { display: grid; gap: 1rem; }
+
+  .pillars { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+  .pillar { background: var(--surface); padding: 1.1rem 1.2rem; }
+  .pillar .rank { font-family: var(--mono); font-size: .68rem; letter-spacing: .12em; color: var(--muted); text-transform: uppercase; }
+  .pillar h3 { margin: .3rem 0 .35rem; font-size: 1.06rem; display: flex; align-items: baseline; gap: .55rem; }
+  .pillar .target { font-family: var(--mono); font-size: .8rem; color: var(--accent-ink); font-weight: 600; }
+  .pillar p { margin: 0; font-size: .95rem; color: var(--ink-soft); }
+
+  /* ---- severity chips ---- */
+  .chip {
+    font-family: var(--mono); font-size: .72rem; font-weight: 600; letter-spacing: .04em;
+    padding: .12em .55em; border-radius: 999px; white-space: nowrap; display: inline-block;
+    border: 1px solid transparent;
+  }
+  .chip.green  { color: var(--sev-green);  background: var(--sev-green-bg);  border-color: var(--sev-green); }
+  .chip.yellow { color: var(--sev-yellow); background: var(--sev-yellow-bg); border-color: var(--sev-yellow); }
+  .chip.orange { color: var(--sev-orange); background: var(--sev-orange-bg); border-color: var(--sev-orange); }
+  .chip.red    { color: var(--sev-red);    background: var(--sev-red-bg);    border-color: var(--sev-red); }
+
+  /* ---- feed funnel (genuine sequence) ---- */
+  .funnel { display: grid; gap: .7rem; margin: 1.2rem 0 .5rem; }
+  .stage {
+    display: grid; grid-template-columns: auto 1fr; gap: .9rem 1rem; align-items: start;
+    background: var(--surface); border: 1px solid var(--line); border-radius: 10px; padding: 1rem 1.15rem;
+    position: relative;
+  }
+  .stage .n {
+    font-family: var(--mono); font-weight: 700; font-size: .85rem; color: var(--bg);
+    background: var(--accent); width: 1.9rem; height: 1.9rem; border-radius: 6px;
+    display: grid; place-items: center;
+  }
+  .stage .body h3 { margin: 0 0 .15rem; font-size: 1.04rem; }
+  .stage .body .q { color: var(--ink-soft); font-size: .95rem; margin: 0 0 .5rem; }
+  .stage .facts { display: flex; flex-wrap: wrap; gap: .4rem .5rem; }
+  .tag {
+    font-family: var(--mono); font-size: .68rem; letter-spacing: .03em; color: var(--muted);
+    background: var(--surface-2); border: 1px solid var(--line); border-radius: 5px; padding: .12em .5em;
+  }
+
+  /* ---- user stories ---- */
+  .story { background: var(--surface); border: 1px solid var(--line); border-left: 3px solid var(--accent); border-radius: 8px; padding: 1.1rem 1.25rem; margin-bottom: 1rem; }
+  .story .role { font-family: var(--mono); font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--muted); }
+  .story h3 { margin: .25rem 0 .6rem; }
+  .story .gherkin { color: var(--ink-soft); margin: 0 0 .8rem; font-size: .97rem; }
+  .story .gherkin b { color: var(--ink); font-weight: 640; }
+  .ac { list-style: none; padding: 0; margin: 0; display: grid; gap: .45rem; }
+  .ac li { position: relative; padding-left: 1.6rem; font-size: .95rem; }
+  .ac li::before {
+    content: ""; position: absolute; left: 0; top: .34em; width: .85rem; height: .85rem;
+    border: 1.5px solid var(--accent); border-radius: 3px;
+  }
+
+  ul.clean { padding-left: 1.15rem; margin: 0 0 1rem; }
+  ul.clean li { margin-bottom: .5rem; }
+  ul.clean li::marker { color: var(--accent); }
+
+  /* ---- tables ---- */
+  .table-scroll { overflow-x: auto; border: 1px solid var(--line); border-radius: 10px; margin: 0 0 1rem; }
+  table { border-collapse: collapse; width: 100%; font-size: .92rem; min-width: 34rem; }
+  th, td { text-align: left; padding: .7rem .85rem; border-bottom: 1px solid var(--line); vertical-align: top; }
+  thead th {
+    font-family: var(--mono); font-size: .66rem; letter-spacing: .1em; text-transform: uppercase;
+    color: var(--muted); font-weight: 600; background: var(--surface-2);
+  }
+  tbody tr:last-child td { border-bottom: none; }
+  td .lvl { font-family: var(--mono); font-weight: 640; font-size: .82rem; }
+  .lvl.high { color: var(--sev-red); } .lvl.med { color: var(--sev-orange); } .lvl.low { color: var(--sev-green); }
+
+  /* ---- phasing ---- */
+  .phase { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-bottom: 1rem; }
+  .phase > header { display: flex; align-items: center; gap: .7rem; padding: .8rem 1.1rem; background: var(--surface-2); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  .phase > header .mvp { font-family: var(--mono); font-size: .64rem; letter-spacing: .1em; text-transform: uppercase; padding: .15em .5em; border-radius: 4px; background: var(--accent); color: var(--bg); font-weight: 700; }
+  .phase > header h3 { margin: 0; font-size: 1.02rem; }
+  .phase > header .when { margin-left: auto; font-family: var(--mono); font-size: .74rem; color: var(--muted); }
+  .phase .inner { padding: 1rem 1.15rem; }
+  .phase .inner ul { margin: 0; }
+
+  .allquiet {
+    display: grid; grid-template-columns: auto 1fr; gap: 1rem; align-items: center;
+    background: var(--sev-green-bg); border: 1px solid var(--sev-green); border-radius: 10px;
+    padding: 1rem 1.2rem; margin: 1.3rem 0;
+  }
+  .allquiet .lamp { width: 12px; height: 12px; border-radius: 50%; background: var(--sev-green); box-shadow: 0 0 0 4px color-mix(in srgb, var(--sev-green) 25%, transparent); }
+  .allquiet p { margin: 0; font-size: .96rem; }
+  .allquiet b { color: var(--sev-green); }
+
+  .footer { margin-top: 4rem; padding-top: 1.5rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .84rem; font-family: var(--mono); }
+  .footer a { color: var(--muted); }
+
+  hr.soft { border: none; border-top: 1px solid var(--line); margin: 2.6rem 0; }
+
+  @media (max-width: 480px) {
+    body { font-size: 16px; }
+    .stage { grid-template-columns: 1fr; }
+    .stage .n { width: 1.7rem; height: 1.7rem; }
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    a { transition: color .15s ease; }
+  }
+</style>
+
+<div class="wrap">
+
+  <header class="masthead">
+    <div class="eyebrow"><span class="dot"></span> Product Requirements Document · HADR Monitor</div>
+    <h1>Morning Situation Report Agent</h1>
+    <p class="subtitle">A scheduled, unattended agent that publishes a daily disaster situation report for Southeast&nbsp;Asia — so a duty officer can decide, in under two minutes, what happened overnight that needs attention today.</p>
+    <dl class="meta-grid">
+      <div><dt>Version</dt><dd>1.0</dd></div>
+      <div><dt>Date</dt><dd>2026-07-07</dd></div>
+      <div><dt>Author</dt><dd>Sarah · PO</dd></div>
+      <div><dt>Quality</dt><dd class="score-hi">94 / 100</dd></div>
+      <div><dt>Region</dt><dd>SEA / ASEAN</dd></div>
+      <div><dt>Publish</dt><dd>08:30 SGT</dd></div>
+    </dl>
+  </header>
+
+  <section id="summary">
+    <span class="sec-label">01 — Executive Summary</span>
+    <h2>What we are building, and why now</h2>
+    <p class="lede">Every morning at 08:30 Singapore time, an agent watches the world's live disaster feeds, works out what happened overnight in the ASEAN neighbourhood — what, where, how bad, who is affected — and publishes it to <code>dashboard.html</code>. When nothing significant has changed, it still publishes an explicit <b>“all quiet, feeds healthy”</b> state. Silence is a reported signal, not an absence of one.</p>
+    <p>Humanitarian assistance and disaster response (HADR) teams — militaries, UN agencies, NGOs — share a common first problem when disaster strikes: knowing that something has happened, how bad it is, and who is affected, fast enough to act. The hours after an event are spent answering exactly those questions from noisy, conflicting sources. This agent takes on that job for the start of the day: it separates signal from noise across three feeds and has an assessment ready before the desk sits down.</p>
+    <p>The value is <b>trust through speed</b>. A watch officer should not have to open three portals, reconcile three severity vocabularies, and mentally diff against yesterday. The report does that work deterministically overnight and presents a triage-ready briefing — including its own health, so a degraded feed is visible rather than silently missing.</p>
+  </section>
+
+  <section id="problem">
+    <span class="sec-label">02 — Problem Statement</span>
+    <h2>The situation, the solution, the impact</h2>
+    <div class="stack">
+      <div class="card">
+        <h3>Current situation</h3>
+        <p>A duty officer starting the day has no single, trustworthy overnight briefing scoped to the region. The raw sources are fast but noisy (USGS emits ~200 events/day, mostly Californian microquakes), modeled but undocumented (GDACS), or authoritative but slow (ReliefWeb, days behind). Their severity scales are not translations of one another, they revise events after publication, and every endpoint is a rolling window that cannot be replayed. Reconciling this by hand, daily, before 09:00, is exactly the fragile manual work that gets skipped under load.</p>
+      </div>
+      <div class="card">
+        <h3>Proposed solution</h3>
+        <p>A scheduled GitHub Actions run in which <b>(1) a deterministic script decides whether anything changed</b>, and <b>(2) a headless model call runs only if it did</b>, to write the human-facing prose. The model never decides whether to wake up. Everything that must give the same answer twice — change detection, dedup, severity thresholds — lives in <code>scripts/</code>, not a prompt. The output is a committed <code>dashboard.html</code> scoped to ASEAN, at an impact-modeled noise floor.</p>
+      </div>
+      <div class="card">
+        <h3>Business impact</h3>
+        <p>One reliable, region-scoped briefing replaces an ad-hoc multi-portal scan, cutting time-to-first-assessment and — more importantly — removing the risk that a significant overnight event is missed because no one checked. An explicit health state converts silent feed outages into reported gaps, protecting the credibility the product lives or dies by.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="metrics">
+    <span class="sec-label">03 — Success Metrics</span>
+    <h2>How we will know it works</h2>
+    <p>The primary KPI is <b>triage speed</b>: the report earns its place only if it lets a duty officer decide fast. Completeness and reliability are the guardrails that make that speed trustworthy.</p>
+    <div class="pillars">
+      <div class="pillar">
+        <span class="rank">Primary KPI</span>
+        <h3>Fast triage <span class="target">&lt; 2 min</span></h3>
+        <p>A duty officer can decide “needs attention today or not” within ~2 minutes of opening the report. Measured by structured read-throughs on days with 0, 1, and several events; validated by the desk confirming they didn't need to open another source to make the call.</p>
+      </div>
+      <div class="pillar">
+        <span class="rank">Guardrail · Trust</span>
+        <h3>No missed significant events <span class="target">0 false-neg</span></h3>
+        <p>Every in-region event above the noise floor (GDACS Orange+, PAGER yellow+, or populated-area quakes) appears in the next report. Measured by back-testing the deterministic filter against recorded fixtures for known events; a miss is a defect, not a tuning note.</p>
+      </div>
+      <div class="pillar">
+        <span class="rank">Guardrail · Reliability</span>
+        <h3>Publishes every morning <span class="target">≥ 99%</span></h3>
+        <p>The 08:30 SGT report lands unattended every day, including a correct “all quiet, feeds healthy” state and a visible signal when any feed is stale or down. Measured by scheduled-run success rate and presence of a per-source freshness line in every published report.</p>
+      </div>
+    </div>
+    <p style="margin-top:1rem; color: var(--ink-soft); font-size:.95rem;"><b>Validation cadence:</b> filter back-tests run in CI on every change (against fixtures, never live feeds); triage-speed and reliability are reviewed at the Day-3 “Trust” demo and thereafter on any week the report is relied on.</p>
+  </section>
+
+  <section id="persona">
+    <span class="sec-label">04 — User Persona</span>
+    <h2>Who reads this at 08:30</h2>
+    <div class="card">
+      <h3>Primary — The Duty Officer / Watch Desk</h3>
+      <ul class="clean">
+        <li><b>Role:</b> Starts a shift responsible for regional situational awareness (a HADR ops cell, national watch desk, or NGO regional coordinator).</li>
+        <li><b>Goal:</b> Answer one question quickly — <em>“What happened overnight that I need to know about?”</em> — and decide whether any event warrants attention today.</li>
+        <li><b>Pain points:</b> Multiple portals with incompatible severity scales; noise drowning signal; no memory of “what changed since yesterday”; no way to tell a quiet night from a dead feed.</li>
+        <li><b>Technical level:</b> Intermediate. Comfortable reading structured briefings and technical provenance; does <em>not</em> want to operate tooling or run queries at 08:30.</li>
+        <li><b>Lens:</b> Global in style, but focused on the ASEAN neighbourhood (Singapore-centric).</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="stories">
+    <span class="sec-label">05 — User Stories &amp; Acceptance Criteria</span>
+    <h2>Core stories</h2>
+
+    <div class="story">
+      <span class="role">Story 1 · Overnight briefing</span>
+      <h3>Read what changed overnight</h3>
+      <p class="gherkin"><b>As a</b> duty officer <b>I want</b> a single morning report of significant regional disaster activity <b>so that</b> I can decide what needs attention today without opening multiple sources.</p>
+      <ul class="ac">
+        <li>Report is published to <code>dashboard.html</code> by 08:30 SGT, scoped to SEA/ASEAN.</li>
+        <li>Each event states what / where / how bad / who is affected, with a severity indication.</li>
+        <li>“New since the last report” is computed on first-seen / last-changed time, not event time — so a late-arriving event is never silently omitted.</li>
+        <li>The report is readable end-to-end in under ~2 minutes on a normal day.</li>
+      </ul>
+    </div>
+
+    <div class="story">
+      <span class="role">Story 2 · Explicit quiet</span>
+      <h3>Trust a quiet morning</h3>
+      <p class="gherkin"><b>As a</b> duty officer <b>I want</b> the report to say explicitly when nothing significant changed <b>so that</b> I can distinguish a genuinely calm night from a broken pipeline.</p>
+      <ul class="ac">
+        <li>On a no-change morning the report still publishes an explicit “all quiet, feeds healthy” state.</li>
+        <li>Every published report names each source's last-success time / freshness.</li>
+        <li>A stale or unavailable feed is reported as a gap, never silently dropped.</li>
+      </ul>
+    </div>
+
+    <div class="story">
+      <span class="role">Story 3 · Signal over noise</span>
+      <h3>See only what matters</h3>
+      <p class="gherkin"><b>As a</b> duty officer <b>I want</b> the ~200/day raw tremors filtered to impact-relevant events <b>so that</b> the briefing is signal, not a firehose.</p>
+      <ul class="ac">
+        <li>Filtering is impact-modeled (GDACS colour, PAGER/<code>sig</code>), not magnitude-alone.</li>
+        <li>Events below the defined noise floor are excluded from the narrative.</li>
+        <li>The filter is a deterministic script, covered by fixture-based tests.</li>
+      </ul>
+    </div>
+
+    <div class="story">
+      <span class="role">Story 4 · Revisions as changes</span>
+      <h3>Follow an event as it evolves</h3>
+      <p class="gherkin"><b>As a</b> duty officer <b>I want</b> upgrades, downgrades and revised figures reported as changes <b>so that</b> yesterday's assessment is corrected rather than frozen.</p>
+      <ul class="ac">
+        <li>Each run re-evaluates events first seen in a recent lookback window, not just new arrivals.</li>
+        <li>Threshold crossings in either direction, and deletions, are reported as changes (e.g. “deaths revised 12 → 89”).</li>
+        <li>Every volatile figure carries a source and an as-of time.</li>
+      </ul>
+    </div>
+  </section>
+
+  <section id="funnel">
+    <span class="sec-label">06 — Domain Model</span>
+    <h2>Three feeds, one funnel</h2>
+    <p>The three sources are not three views of the same thing. They are three stages of a funnel, each answering a different question at a different latency. Their severity vocabularies are not translations of each other, and a mismatch between them is often the funnel working correctly, not an error. Cross-feed “dedup” is really <b>linking one physical event as it moves down the funnel</b>.</p>
+    <div class="funnel">
+      <div class="stage">
+        <div class="n">1</div>
+        <div class="body">
+          <h3>USGS <span class="chip green" style="vertical-align:middle">instrument</span></h3>
+          <p class="q">“Did the earth shake?” — the instrument record.</p>
+          <div class="facts"><span class="tag">GeoJSON</span><span class="tag">~200/day</span><span class="tag">latency: minutes</span><span class="tag">poll ≤ 1/min · ETag</span></div>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="n">2</div>
+        <div class="body">
+          <h3>GDACS <span class="chip orange" style="vertical-align:middle">modeled</span></h3>
+          <p class="q">“Might it matter to people?” — modeled population impact, colour-coded.</p>
+          <div class="facts"><span class="tag">JSON + RSS fallback</span><span class="tag">a handful/day</span><span class="tag">latency: minutes–hours</span><span class="tag">poll ~10–15 min</span></div>
+        </div>
+      </div>
+      <div class="stage">
+        <div class="n">3</div>
+        <div class="body">
+          <h3>ReliefWeb <span class="chip red" style="vertical-align:middle">curated</span></h3>
+          <p class="q">“Did the humanitarian system respond?” — curated, authoritative, slow.</p>
+          <div class="facts"><span class="tag">API (appname) + RSS</span><span class="tag">~1–3/week</span><span class="tag">latency: days</span><span class="tag">poll 3–4×/day · 1000/day cap</span></div>
+        </div>
+      </div>
+    </div>
+    <p style="font-size:.95rem;color:var(--ink-soft)">Severity is reported on <b>one</b> internal scale with an explicit precedence rule for conflicts (GDACS colour wins where present; PAGER maps <span class="chip green">green</span> → <span class="chip yellow">yellow/orange</span> → <span class="chip red">red</span>; magnitude alone never sets severity). Forecast alerts (GDACS cyclones) are reported as <b>“expected”</b>, never as having occurred.</p>
+  </section>
+
+  <section id="functional">
+    <span class="sec-label">07 — Functional Requirements</span>
+    <h2>Core features</h2>
+
+    <div class="stack">
+      <div class="card">
+        <h3>F1 · Feed ingestion &amp; normalisation</h3>
+        <p>Fetch each source behind a swappable adapter (GDACS JSON with RSS fallback). Normalise every payload into <b>one internal event schema</b> before it reaches diffing, rendering, or the prompt — downstream code never sees a raw feed format. Snapshot every raw payload on fetch (fixtures + audit trail). <em>Edge cases:</em> empty response is valid and must not read as an error; three timestamp dialects (epoch-ms UTC, naive-UTC strings, RFC-822) are all resolved against an explicit SGT reporting-day boundary.</p>
+      </div>
+      <div class="card">
+        <h3>F2 · Deterministic change detection</h3>
+        <p>A script decides whether anything meaningful changed since the last report and exits in a way the workflow can branch on — <b>without calling a model</b>. “Changed” is computed on first-seen / last-changed, over a recent lookback window, so late arrivals and post-publication revisions are caught. <em>Error handling:</em> phantom “deletions” from a rolling window are distinguished from true deletions.</p>
+      </div>
+      <div class="card">
+        <h3>F3 · Noise filtering &amp; severity</h3>
+        <p>Apply the impact-modeled noise floor per feed (GDACS colour, PAGER/<code>sig</code>) and resolve severity onto one internal scale with the documented precedence rule. Recently-seen events are re-evaluated each run, so an upgrade of a previously-discarded event is not structurally missed.</p>
+      </div>
+      <div class="card">
+        <h3>F4 · Cross-feed identity &amp; sequence grouping</h3>
+        <p>Store all source IDs as an alias set. Match earthquakes across feeds by origin time / epicentre / magnitude tolerance; attach GLIDE as confirmation when it appears. Group aftershock sequences for reporting (“M7.5 + 47 aftershocks”) — distinct from identity matching. <em>Bias:</em> prefer an unmerged duplicate over a wrong merge.</p>
+      </div>
+      <div class="card">
+        <h3>F5 · Report rendering + all-quiet state</h3>
+        <p>Render <code>dashboard.html</code>: triage-ordered events with what / where / how bad / who, provenance and as-of times on volatile numbers, and an explicit all-quiet state on no-change mornings. The model is invoked <b>only when F2 signals a change</b>, to write prose over already-decided facts.</p>
+      </div>
+      <div class="card">
+        <h3>F6 · Health surface</h3>
+        <p>Track and render per-source last-success time and payload freshness. A stale/unavailable feed is surfaced as a reported gap in every report — the mechanism that makes silence trustworthy.</p>
+      </div>
+    </div>
+
+    <h3>Out of scope (this release)</h3>
+    <ul class="clean">
+      <li>No alerting / paging / notification channel beyond the committed <code>dashboard.html</code>.</li>
+      <li>No historical replay UI or querying of past reports.</li>
+      <li>No user accounts, authentication, or per-user configuration.</li>
+      <li>No mutation handling beyond “latest snapshot wins” best-effort (some churn / occasional duplicate accepted).</li>
+    </ul>
+  </section>
+
+  <section id="constraints">
+    <span class="sec-label">08 — Technical Constraints</span>
+    <h2>Constraints &amp; integration</h2>
+
+    <h3>Architecture &amp; determinism</h3>
+    <ul class="clean">
+      <li>Fixed shape: scheduled run → deterministic change-check script → headless <code>claude -p</code> only on change. The model never decides whether to wake up.</li>
+      <li>Determinism out of prompts: change detection, dedup, severity thresholds live in <code>scripts/</code>.</li>
+      <li>Fixtures-first: parsers are built and tested against committed fixtures; CI never calls live feeds.</li>
+    </ul>
+
+    <h3>Polling budget &amp; performance</h3>
+    <ul class="clean">
+      <li>USGS ≤ 1/min with <code>If-Modified-Since</code>/ETag; GDACS ~10–15 min; ReliefWeb 3–4×/day.</li>
+      <li>Report generation is a once-daily batch — throughput is not a concern; correctness and reproducibility are.</li>
+    </ul>
+
+    <h3>Integration &amp; endpoints</h3>
+    <ul class="clean">
+      <li><b>USGS:</b> summary GeoJSON feed for polling; FDSN event query API for lookback / confirming true deletions.</li>
+      <li><b>GDACS:</b> JSON event list behind an adapter, RSS/CAP as fallback (JSON endpoint is undocumented).</li>
+      <li><b>ReliefWeb:</b> <code>/reports</code> + <code>/disasters</code> via API once appname lands; RSS with GLIDE-parsing until then. Hard cap 1000 calls/day.</li>
+    </ul>
+
+    <h3>Technology stack</h3>
+    <ul class="clean">
+      <li>Python, standard library first; dependencies pinned in <code>requirements.txt</code> only when they earn their place.</li>
+      <li><code>pytest</code> from repo root; scheduled via GitHub Actions (mind the cron timezone vs 08:30 SGT).</li>
+      <li>No secrets beyond the ReliefWeb appname and the Claude key; <code>dashboard.html</code> is committed to the repo.</li>
+    </ul>
+    <p style="font-size:.9rem;color:var(--muted)">Security &amp; compliance: all sources are public feeds; no PII is stored. The only credentials are API keys held as Actions secrets. Deviations from this PRD or <code>CLAUDE.md</code> are recorded in <code>implementation-notes.md</code>.</p>
+  </section>
+
+  <section id="phasing">
+    <span class="sec-label">09 — Scope &amp; Phasing</span>
+    <h2>Vertical slices</h2>
+    <p>The build cuts vertically — a thin end-to-end path first, then breadth. Slice 1 proves the whole architecture through a single feed before any cross-feed complexity is introduced.</p>
+
+    <div class="phase">
+      <header><span class="mvp">MVP · Slice 1</span><h3>USGS-only, end-to-end</h3><span class="when">Day 2 · first slice</span></header>
+      <div class="inner">
+        <ul class="clean">
+          <li>Fetch USGS → normalise to the internal event schema → snapshot raw payload as fixture.</li>
+          <li>Deterministic change detection (first-seen / last-changed) + impact-modeled noise floor on <code>sig</code>/PAGER.</li>
+          <li>Render <code>dashboard.html</code> with the explicit all-quiet state and a per-source health line.</li>
+          <li>Wire the 08:30 SGT GitHub Actions routine: change-check gates the headless model call.</li>
+        </ul>
+        <div class="allquiet"><span class="lamp"></span><p><b>Definition of done for the MVP:</b> on a quiet morning the routine publishes “all quiet, feeds healthy”; on an active morning it publishes a triage-ready USGS briefing — unattended, from committed fixtures in test.</p></div>
+      </div>
+    </div>
+
+    <div class="phase">
+      <header><h3>Slice 2 — Add GDACS &amp; cross-feed matching</h3><span class="when">Post-MVP</span></header>
+      <div class="inner">
+        <ul class="clean">
+          <li>GDACS adapter (JSON + RSS fallback); colour-based severity onto the shared scale with precedence rule.</li>
+          <li>Cross-feed identity matching (alias sets, space-time tolerance) and aftershock-sequence grouping.</li>
+          <li>Re-evaluation of recently-seen events to catch post-publication colour upgrades.</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="phase">
+      <header><h3>Slice 3 — Add ReliefWeb &amp; multi-hazard</h3><span class="when">Later</span></header>
+      <div class="inner">
+        <ul class="clean">
+          <li>ReliefWeb <code>/reports</code> + <code>/disasters</code> once appname is approved; GLIDE as link confirmation.</li>
+          <li>Non-earthquake hazards (cyclone forecasts as “expected”, floods/droughts as spanning areas).</li>
+          <li>Richer provenance and revision tracking on volatile impact figures.</li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="risks">
+    <span class="sec-label">10 — Risk Assessment</span>
+    <h2>Risks &amp; mitigations</h2>
+    <div class="table-scroll">
+      <table>
+        <thead><tr><th>Risk</th><th>Prob.</th><th>Impact</th><th>Mitigation</th></tr></thead>
+        <tbody>
+          <tr><td>Post-publication revisions (magnitude, colour, casualty figures) make yesterday's report wrong</td><td><span class="lvl high">High</span></td><td><span class="lvl high">High</span></td><td>Store first-/last-seen/changed times; re-evaluate a lookback window each run; report threshold-crossings as changes with as-of times.</td></tr>
+          <tr><td>Wrong cross-feed merge collapses two real events (aftershock sequences)</td><td><span class="lvl med">Med</span></td><td><span class="lvl high">High</span></td><td>Alias-set matching with stated tolerances; sequence grouping distinct from identity; bias toward unmerged duplicate over wrong merge.</td></tr>
+          <tr><td>Feed down / stale at 08:30 goes unnoticed → false “calm”</td><td><span class="lvl med">Med</span></td><td><span class="lvl high">High</span></td><td>Per-source freshness stored and surfaced in every report; empty response treated as valid but health-checked separately.</td></tr>
+          <tr><td>ReliefWeb appname approval slips (manual, external clock)</td><td><span class="lvl high">High</span></td><td><span class="lvl med">Med</span></td><td>Request today; build against RSS with GLIDE-parsing meanwhile; defer ReliefWeb to Slice 3 so it never blocks the MVP.</td></tr>
+          <tr><td>GDACS private JSON endpoint changes or vanishes</td><td><span class="lvl low">Low</span></td><td><span class="lvl med">Med</span></td><td>Wrap in a swappable adapter; keep RSS/CAP parser as fallback surface.</td></tr>
+          <tr><td>Timezone bug shifts events into the wrong report day (8-hour UTC↔SGT)</td><td><span class="lvl med">Med</span></td><td><span class="lvl med">Med</span></td><td>Explicit SGT reporting-day boundary; parse all three timestamp dialects to UTC first; cover with fixture tests.</td></tr>
+          <tr><td>Reporting <code>tsunami:1</code> as “a tsunami occurred”</td><td><span class="lvl low">Low</span></td><td><span class="lvl high">High</span></td><td>Treat the flag as eligibility only; language rule forbids stating occurrence without an actual warning source.</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="deps">
+    <span class="sec-label">11 — Dependencies &amp; Blockers</span>
+    <h2>What we depend on</h2>
+    <ul class="clean">
+      <li><b>ReliefWeb appname</b> — pre-approved, requested via form, confirmed by email (manual review). <em>Owner:</em> requested Day 1. <em>Mitigation:</em> RSS fallback; not on the MVP critical path.</li>
+      <li><b>Claude API key + GitHub Actions secrets</b> — required for the headless report step and scheduled run.</li>
+      <li><b>Recorded feed fixtures</b> — a committed snapshot per source is a prerequisite for any parser work (fixtures-first).</li>
+      <li><b>Live-feed availability &amp; goodwill</b> — no SLAs on GDACS/USGS; polite polling budgets are a hard constraint, not a preference.</li>
+    </ul>
+  </section>
+
+  <section id="appendix">
+    <span class="sec-label">12 — Appendix</span>
+    <h2>Glossary &amp; references</h2>
+    <h3>Glossary</h3>
+    <ul class="clean">
+      <li><b>HADR</b> — Humanitarian Assistance &amp; Disaster Response.</li>
+      <li><b>Sitrep</b> — situation report; the daily briefing this agent publishes.</li>
+      <li><b>PAGER</b> — USGS impact estimate (<code>green</code>/<code>yellow</code>/<code>orange</code>/<code>red</code>), arrives ~20–30 min after first sighting.</li>
+      <li><b>GLIDE</b> — humanitarian join key (<code>EQ-2026-000093-VEN</code>); assigned late, only to significant events.</li>
+      <li><b>Alias set</b> — the collection of all source IDs for one physical event; the preferred ID can migrate between networks.</li>
+      <li><b>All-quiet</b> — the explicit “nothing significant changed, feeds healthy” report state.</li>
+    </ul>
+    <h3>References</h3>
+    <ul class="clean">
+      <li>Source concept &amp; scope: <code>REQS.md</code></li>
+      <li>Feed dossiers &amp; open questions: <code>feeds/usgs.md</code>, <code>feeds/gdacs.md</code>, <code>feeds/reliefweb.md</code></li>
+      <li>Domain traps &amp; prompt rules: <code>feeds/blindspots.md</code></li>
+      <li>Planning questions Q01–Q10: <code>briefing.html</code></li>
+      <li>Conventions &amp; deviations policy: <code>CLAUDE.md</code>, <code>implementation-notes.md</code></li>
+      <li>Fixed pipeline shape: <code>.github/workflows/sitrep.yml.disabled</code></li>
+    </ul>
+  </section>
+
+  <div class="footer">
+    HADR Monitor · PRD v1.0 · 2026-07-07 · generated through interactive requirements gathering (quality 94/100).<br>
+    Determinism out of prompts · fixtures-first · one normalised event schema · silence is a reported signal.
+  </div>
+
+</div>
